@@ -3,7 +3,7 @@
  * global h3 middleware because vite.config.ts sets `serverDir: "./server"` —
  * without that option Nitro v3 never scans this directory.
  *
- * - `?install=1&platform=ios` on a document path → the Home Screen tutorial,
+ * - `?install=1` on a document path → the Home Screen tutorial,
  *   bundled into the server build via `?raw` (the public/ directory is CDN
  *   static output on Vercel and not readable from the function).
  * - `/__grok/manifest.webmanifest` → per-app-named manifest (kept out of
@@ -71,7 +71,7 @@ export default async function grokPwaMiddleware(
   const urlWithQuery = path + event.url.search;
 
   if (path === "/__grok/manifest.webmanifest" || path === "/__grok/manifest.json") {
-    return new Response(renderWebManifest(requestHost(event)), {
+    return new Response(renderWebManifest(requestHost(event), grokOgIdentity.site), {
       headers: {
         "content-type": "application/manifest+json; charset=utf-8",
         "cache-control": "no-cache",
@@ -87,6 +87,7 @@ export default async function grokPwaMiddleware(
     const html = renderInstallPageHtml(installPageTemplate, {
       host: requestHost(event),
       url: urlWithQuery,
+      site: grokOgIdentity.site,
     });
     return new Response(html, {
       headers: {

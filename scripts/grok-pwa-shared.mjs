@@ -6,7 +6,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-export const DEFAULT_APP_NAME = "Grok App";
+/** This project's install / manifest name. Never ship the platform "Grok App" fallback. */
+export const DEFAULT_APP_NAME = "Hand & Foot Score";
+export const DEFAULT_SHORT_NAME = "Hand & Foot";
+export const PWA_THEME_COLOR = "#121a16";
+/** Platform template used to treat a host slug as "no name yet". */
+const LEGACY_DEFAULT_APP_NAME = "Grok App";
 export const OG_SERVICE_URL_DEFAULT = "https://og.grok.me";
 export const OG_SITE_REL_PATH = "src/lib/og/site.json";
 
@@ -120,8 +125,7 @@ export function isInstallQuery(url) {
   const query = String(url ?? "").split("?", 2)[1] ?? "";
   const params = new URLSearchParams(query);
   const install = params.get("install");
-  const platform = (params.get("platform") ?? "").toLowerCase();
-  return (install === "1" || install === "true") && platform === "ios";
+  return install === "1" || install === "true";
 }
 
 /** Paths that can carry an app document (vs assets / API / internals). */
@@ -151,29 +155,58 @@ export function stripInstallParams(url) {
   return rest ? `${path}?${rest}` : path;
 }
 
-export function renderInstallPageHtml(template, { host, url } = {}) {
+export function renderInstallPageHtml(template, { host, url, site } = {}) {
+  const name = resolveOgTitle(
+    site !== undefined ? site : readOgSite(),
+    DEFAULT_APP_NAME,
+    host,
+  );
   return String(template)
-    .replaceAll("{{APP_NAME}}", escapeHtml(appNameFromHost(host)))
+    .replaceAll("{{APP_NAME}}", escapeHtml(name))
     .replaceAll("{{APP_URL}}", escapeHtml(stripInstallParams(url)));
 }
 
-export function renderWebManifest(hostHeader) {
-  const name = appNameFromHost(hostHeader);
+export function shortNameFor(name) {
+  return name === DEFAULT_APP_NAME ? DEFAULT_SHORT_NAME : name;
+}
+
+export function renderWebManifest(hostHeader, site) {
+  const resolvedSite = site !== undefined ? site : readOgSite();
+  const name = resolveOgTitle(resolvedSite, DEFAULT_APP_NAME, hostHeader);
   return JSON.stringify(
     {
       name,
-      short_name: name,
+      short_name: shortNameFor(name),
       id: "/",
       start_url: "/",
       scope: "/",
       display: "standalone",
-      background_color: "#000000",
-      theme_color: "#000000",
+      background_color: PWA_THEME_COLOR,
+      theme_color: PWA_THEME_COLOR,
       icons: [
         {
-          src: "/__grok/icon-180.png",
-          sizes: "180x180",
+          src: "/icons/icon-192.png",
+          sizes: "192x192",
           type: "image/png",
+          purpose: "any",
+        },
+        {
+          src: "/icons/icon-512.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any",
+        },
+        {
+          src: "/icons/icon-192-maskable.png",
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "maskable",
+        },
+        {
+          src: "/icons/icon-512-maskable.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "maskable",
         },
       ],
     },
@@ -194,9 +227,9 @@ export function grokPwaHeadTags(appName = DEFAULT_APP_NAME) {
     ],
     [
       "apple-mobile-web-app-status-bar-style",
-      '<meta name="apple-mobile-web-app-status-bar-style" content="black">',
+      '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">',
     ],
-    ["theme-color", '<meta name="theme-color" content="#000000">'],
+    ["theme-color", `<meta name="theme-color" content="${PWA_THEME_COLOR}">`],
   ];
 }
 
@@ -308,9 +341,12 @@ export function resolveOgTitle(
   const fromDoc = String(documentTitle ?? "").trim();
   if (fromDoc) return fromDoc;
   const fromHost = appNameFromHost(host);
-  if (fromHost && fromHost !== DEFAULT_APP_NAME) return fromHost;
+  if (fromHost && fromHost !== DEFAULT_APP_NAME && fromHost !== LEGACY_DEFAULT_APP_NAME) {
+    return fromHost;
+  }
   const fromArg = String(appName ?? "").trim();
-  return fromArg || DEFAULT_APP_NAME;
+  if (fromArg && fromArg !== LEGACY_DEFAULT_APP_NAME) return fromArg;
+  return DEFAULT_APP_NAME;
 }
 
 export function siteHasCustomCard(site = {}) {
