@@ -4,7 +4,10 @@ dist/
 .vercel/
 .nitro/
 .tanstack/
-.grok/
+.grok/*
+# The app-builder scaffold under .grok/ is platform tooling and stays ignored,
+# but the shipped build flag (auth off — "no account required") must be tracked.
+!.grok/app-env.json
 artifacts/
 screenshots/
 *.log
