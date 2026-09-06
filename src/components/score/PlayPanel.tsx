@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Calculator, Minus, Plus, RotateCcw } from "lucide-react";
+import { Calculator, Flag, Minus, Plus, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { TeamMark } from "./Suits";
 import { ScoreEntryDrawer } from "./ScoreEntryDrawer";
@@ -33,8 +34,8 @@ export function PlayPanel({ game, team, onChange, onReset }: Props) {
   const otherGoingOut = game.scores[game.currentHand][team === 0 ? 1 : 0].goingOut;
   const lines = {
     perfectDraw: score.perfectDraw ? POINTS.perfectDraw : 0,
-    goingOut: score.goingOut ? hand.goingOut : 0,
   };
+  const otherName = game.teamNames[team === 0 ? 1 : 0];
   const sub = subtotal(score, hand);
   const total = handTotal(score, hand);
   const running = runningTotal(game, team, game.currentHand);
@@ -67,22 +68,6 @@ export function PlayPanel({ game, team, onChange, onReset }: Props) {
         checked={score.perfectDraw}
         onCheckedChange={(v) => onChange({ perfectDraw: v })}
       />
-      <ToggleRow
-        label="Going Out"
-        hint={
-          otherGoingOut
-            ? `${game.teamNames[team === 0 ? 1 : 0]} already went out`
-            : ready
-              ? `${hand.cleanNeed} clean · ${hand.dirtyNeed} dirty met`
-              : `Need ${hand.cleanNeed} clean & ${hand.dirtyNeed} dirty`
-        }
-        value={lines.goingOut}
-        checked={score.goingOut}
-        disabled={otherGoingOut}
-        onCheckedChange={(v) => onChange({ goingOut: v })}
-        warn={score.goingOut && !ready}
-      />
-
       {BOOK_ROWS.map((row) => (
         <StepperRow
           key={row.key}
@@ -122,6 +107,50 @@ export function PlayPanel({ game, team, onChange, onReset }: Props) {
           <span className="text-paper-muted">Game total through {hand.short}</span>
           <span className="font-medium tabular-nums">{formatPts(running)}</span>
         </div>
+      </div>
+
+      <div className="mt-4">
+        {otherGoingOut ? (
+          <p className="rounded-lg bg-paper-inset px-4 py-3 text-center text-sm text-paper-muted">
+            {otherName} already submitted going out — last act of this hand.
+          </p>
+        ) : score.goingOut ? (
+          <div className="rounded-lg bg-paper-inset px-4 py-3">
+            <p className="flex items-center justify-center gap-2 font-medium text-paper-fg">
+              <Flag className="size-4" />
+              Went out · last act · +{formatPts(hand.goingOut)}
+            </p>
+            <p className="mt-1 text-center text-sm text-paper-muted">
+              {score.goingOut && !ready
+                ? `Books are short of ${hand.cleanNeed} clean & ${hand.dirtyNeed} dirty`
+                : "This team closed the hand. Enter the other team's leftover cards, then move on."}
+            </p>
+            <button
+              type="button"
+              onClick={() => onChange({ goingOut: false })}
+              className="mx-auto mt-2 block h-11 px-3 text-sm text-paper-muted hover:text-paper-fg"
+            >
+              Undo go out
+            </button>
+          </div>
+        ) : (
+          <div>
+            <Button
+              size="lg"
+              className="w-full"
+              disabled={!ready}
+              onClick={() => onChange({ goingOut: true })}
+            >
+              <Flag className="size-4" />
+              Submit — go out (+{formatPts(hand.goingOut)})
+            </Button>
+            <p className="mt-2 text-center text-sm text-paper-muted">
+              {ready
+                ? "Last act of the hand. Only one team can go out."
+                : `Need ${hand.cleanNeed} clean & ${hand.dirtyNeed} dirty before you can go out`}
+            </p>
+          </div>
+        )}
       </div>
 
       <ScoreEntryDrawer
