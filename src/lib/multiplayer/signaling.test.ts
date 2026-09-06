@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { PGlite } from "@electric-sql/pglite";
-import { handleRtc, type RtcRequest } from "./signaling.ts";
+import { handleRtc, handleRtcWithSql, type RtcRequest } from "./signaling.ts";
 import type { Sql } from "../db.ts";
 
 /**
@@ -136,5 +136,22 @@ describe("rtc signaling relay", () => {
       body: null,
     };
     assert.equal((await handleRtc(sql, badMethod)).status, 405);
+  });
+
+  describe("DB-unavailable degradation", () => {
+    it("returns 503 when the SQL accessor can't initialize", async () => {
+      const failing = () => Promise.reject(new Error("no DATABASE_URL and PGLite WASM missing"));
+      const res = await handleRtcWithSql(failing, get("r1", "alice", "Alice"));
+      assert.equal(res.status, 503);
+      assert.deepEqual(res.body, { error: "signaling unavailable" });
+    });
+
+    it("serves the normal path unchanged when the SQL accessor resolves", async () => {
+      const res = await handleRtcWithSql(async () => sql, get("degrade-room", "carol", "Carol"));
+      assert.equal(res.status, 200);
+      const body = res.body as { peers: { id: string; name: string }[]; signals: unknown[] };
+      assert.deepEqual(body.peers, [{ id: "carol", name: "Carol" }]);
+      assert.deepEqual(body.signals, []);
+    });
   });
 });

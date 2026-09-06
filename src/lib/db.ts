@@ -226,13 +226,19 @@ export function ensureDbReady(): Promise<void> {
 
 // Server-only eager start: kick PGLite bootstrap as soon as this module loads in
 // Node. Client bundles never hit this path (`getSql` throws in the browser).
+//
+// NON-FATAL: a bootstrap failure here must not crash the server. Deploys without
+// a DATABASE_URL fall back to PGLite, whose WASM assets aren't in the Vercel
+// bundle, so init throws — but the app is otherwise DB-free (single-player
+// scoresheet, SSR, static assets, PWA all work), and only `/api/rtc` needs the
+// DB. So swallow the error (never re-throw into an unhandled rejection that
+// takes down the function); it resurfaces lazily to real DB callers via
+// getSql(), which return a controlled 503 for signaling.
 const globalBoot = globalThis as typeof globalThis & {
   __pgBootstrapPromise__?: Promise<void>;
 };
 if (typeof window === "undefined" && dbSource === "pglite") {
   globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
-    globalBoot.__pgBootstrapPromise__ = undefined;
-    console.error("[db] PGLite bootstrap failed:", err);
-    throw err;
+    console.error("[db] PGLite bootstrap failed (server keeps serving; DB-backed features degrade):", err);
   });
 }

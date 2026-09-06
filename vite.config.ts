@@ -46,8 +46,10 @@ function pgliteBootstrapPlugin(): Plugin {
           await mod.ensureDbReady();
         }
       } catch (err) {
-        console.error("[app-builder] DB bootstrap failed:", err);
-        throw err;
+        // Non-fatal: keep serving the (DB-free) app even if bootstrap fails.
+        // Only DB-backed features (/api/rtc signaling) degrade — they surface a
+        // controlled 503 via getSql() rather than crashing the dev server.
+        console.error("[app-builder] DB bootstrap failed (dev server keeps serving):", err);
       }
     },
   };
