@@ -26,6 +26,7 @@ import {
 } from "@/lib/scoring";
 import { useActiveGame, useGameStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { InstallHint } from "@/components/pwa/InstallHint";
 
 type View = "play" | "sheet";
 
@@ -98,6 +99,7 @@ function Home({ gamesCount }: { gamesCount: number }) {
           setSetup(true);
         }}
       />
+      <InstallHint />
     </div>
   );
 }

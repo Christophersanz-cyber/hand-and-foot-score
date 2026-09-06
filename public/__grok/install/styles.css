@@ -1,5 +1,5 @@
 :root {
-  --bg: #000000;
+  --bg: #121a16;
   --title: #fcfcfc;
   --white: #ffffff;
   --text-footnote: 0.9375rem; /* 15 — iOS Subhead */
@@ -259,15 +259,29 @@ h1 {
 }
 
 .step-ios27,
-.step-ios-legacy {
+.step-ios-legacy,
+.step-android {
   display: none;
 }
 
 html.device-phone.ios-27-plus .step-ios27,
 html.device-phone.ios-below-27 .step-ios-legacy,
-html.device-phone:not(.ios-27-plus):not(.ios-below-27) .step-ios-legacy,
-html.device-tablet .step-ios-legacy {
+html.device-phone:not(.ios-27-plus):not(.ios-below-27):not(.os-android) .step-ios-legacy,
+html.device-tablet:not(.os-android) .step-ios-legacy {
   display: flex;
+}
+
+html.os-android .step-ios27,
+html.os-android .step-ios-legacy,
+html.os-android .step-ios {
+  display: none;
+}
+
+html.os-android .step-android {
+  display: flex;
+  flex-wrap: wrap;
+  white-space: normal;
+  text-align: center;
 }
 
 /* Desktop (also the no-JS default): swap the tutorial for a visible fallback
