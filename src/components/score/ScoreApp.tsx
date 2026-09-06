@@ -1,23 +1,23 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   BookOpen,
   ClipboardList,
   History,
+  LogIn,
   PenLine,
   Pencil,
   RotateCcw,
   Share2,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { GamesDrawer, RenameDialog, RulesDrawer, SetupDialog } from "./Drawers";
 import { HandRequirements, PlayPanel } from "./PlayPanel";
 import { SheetPanel } from "./SheetPanel";
 import { SuitRow, TeamMark } from "./Suits";
+import { InviteDialog, JoinDialog, JoiningScreen, LiveBadge } from "./Live";
 import {
   HANDS,
   formatPts,
-  gameSummary,
   goOutTeam,
   isHandPlayed,
   playedHandCount,
@@ -27,6 +27,7 @@ import {
   type TeamIndex,
 } from "@/lib/scoring";
 import { useActiveGame, useGameStore } from "@/lib/store";
+import { liveSession } from "@/lib/multiplayer/session";
 import { cn } from "@/lib/utils";
 import { InstallHint } from "@/components/pwa/InstallHint";
 
@@ -36,6 +37,8 @@ export function ScoreApp() {
   const game = useActiveGame();
   const games = useGameStore((s) => s.games);
   const setHydrated = useGameStore((s) => s.setHydrated);
+  const setActive = useGameStore((s) => s.setActive);
+  const [joiningRoom, setJoiningRoom] = useState<string | null>(null);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -44,17 +47,60 @@ export function ScoreApp() {
     return () => window.clearTimeout(t);
   }, [setHydrated]);
 
+  const startJoin = useCallback(
+    (roomId: string) => {
+      const existing = useGameStore.getState().games.find((g) => g.id === roomId);
+      if (existing) {
+        setActive(roomId);
+        liveSession.start(roomId);
+        setJoiningRoom(null);
+      } else {
+        setJoiningRoom(roomId);
+        liveSession.start(roomId);
+      }
+    },
+    [setActive],
+  );
+
+  // A `?join=<roomId>` link (auto)joins the shared game, then drops the param.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const room = params.get("join");
+    if (!room) return;
+    params.delete("join");
+    const qs = params.toString();
+    window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    startJoin(room);
+  }, [startJoin]);
+
+  // Once the joined game's state arrives, leave the connecting screen.
+  useEffect(() => {
+    if (joiningRoom && games.some((g) => g.id === joiningRoom)) setJoiningRoom(null);
+  }, [joiningRoom, games]);
+
+  if (joiningRoom && !game) {
+    return (
+      <JoiningScreen
+        onCancel={() => {
+          liveSession.stop();
+          setJoiningRoom(null);
+        }}
+      />
+    );
+  }
+
   if (!game) {
-    return <Home gamesCount={games.length} />;
+    return <Home gamesCount={games.length} onJoin={startJoin} />;
   }
 
   return <Board />;
 }
 
-function Home({ gamesCount }: { gamesCount: number }) {
+function Home({ gamesCount, onJoin }: { gamesCount: number; onJoin: (roomId: string) => void }) {
   const newGame = useGameStore((s) => s.newGame);
   const [setup, setSetup] = useState(false);
   const [gamesOpen, setGamesOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col items-stretch justify-center px-5 py-10 safe-top pb-24">
@@ -84,7 +130,18 @@ function Home({ gamesCount }: { gamesCount: number }) {
             Resume a game
           </Button>
         ) : null}
+        <Button variant="ghost" className="w-full" onClick={() => setJoinOpen(true)}>
+          <LogIn className="size-4" /> Join a game
+        </Button>
       </div>
+      <JoinDialog
+        open={joinOpen}
+        onOpenChange={setJoinOpen}
+        onJoin={(roomId) => {
+          setJoinOpen(false);
+          onJoin(roomId);
+        }}
+      />
       <SetupDialog
         open={setup}
         onOpenChange={setSetup}
@@ -121,6 +178,7 @@ function Board() {
   const [gamesOpen, setGamesOpen] = useState(false);
   const [setup, setSetup] = useState(false);
   const [rename, setRename] = useState<TeamIndex | null>(null);
+  const [invite, setInvite] = useState(false);
 
   if (!game) return null;
 
@@ -133,43 +191,27 @@ function Board() {
   const played = playedHandCount(active);
   const outTeam = goOutTeam(active, active.currentHand);
 
-  async function share() {
-    const text = gameSummary(active);
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Hand & Foot Score", text });
-      } else {
-        await navigator.clipboard.writeText(text);
-        toast.success("Score copied");
-      }
-    } catch {
-      try {
-        await navigator.clipboard.writeText(text);
-        toast.success("Score copied");
-      } catch {
-        toast.error("Could not share");
-      }
-    }
-  }
-
   return (
     <div className="mx-auto flex min-h-dvh max-w-3xl flex-col pb-16">
       <header className="safe-top safe-x sticky top-0 z-20 bg-felt/95 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-2 pt-1 pb-2">
-          <div className="min-w-0">
-            <p className="text-xs font-medium tracking-[0.2em] text-felt-muted uppercase">
-              Hand & Foot
-            </p>
-            <h1 className="font-display text-lg font-semibold tracking-tight text-felt-fg">
-              Score
-            </h1>
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="min-w-0">
+              <p className="text-xs font-medium tracking-[0.2em] text-felt-muted uppercase">
+                Hand & Foot
+              </p>
+              <h1 className="font-display text-lg font-semibold tracking-tight text-felt-fg">
+                Score
+              </h1>
+            </div>
+            <LiveBadge roomId={active.id} />
           </div>
           <div className="flex items-center">
             <Button
               variant="ghost"
               size="iconSm"
-              aria-label="Share score"
-              onClick={() => void share()}
+              aria-label="Invite to score together"
+              onClick={() => setInvite(true)}
             >
               <Share2 />
             </Button>
@@ -376,6 +418,7 @@ function Board() {
         </div>
       </main>
 
+      <InviteDialog game={active} open={invite} onOpenChange={setInvite} />
       <RulesDrawer open={rules} onOpenChange={setRules} />
       <GamesDrawer
         open={gamesOpen}

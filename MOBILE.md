@@ -105,7 +105,7 @@ Copy store icons from `public/icons/` (512) and `public/__grok/icon-180.png`. Us
 ## Store listing checklist
 
 - Screenshots from a real device (play view + full sheet).
-- Privacy: scores stay on device; no account. State that in both store privacy forms.
+- Privacy: scores stay on device; no account. Optional **live shared scoring** connects two devices directly over WebRTC (peer-to-peer) via an invite link — game data is not stored on the server, only ephemeral WebRTC signaling metadata transits the `/api/rtc` relay. State this in both store privacy forms.
 - Age rating: everyone / 4+.
 - Do not advertise “Grok App”. Name is **Hand & Foot Score**.
 - Hide the in-app install hint when `window.Capacitor` is present (the hint already no-ops in standalone display mode).

@@ -8,6 +8,31 @@ Games are stored on the device (`localStorage` key `hand-foot-score`). No accoun
 
 Live reference: [hand-and-foot-scoresheet.grok.me](https://hand-and-foot-scoresheet.grok.me/)
 
+## Live shared scoring (real-time multiplayer)
+
+Two devices can score the **same** game together, updating in real time.
+
+- On the scoring screen, tap **Share** (top-right) to open **Score together**. This starts a live session and gives you an invite link (`/?join=<gameId>`) to send to the other player.
+- The other device opens the link — or taps **Join a game** on the landing screen and pastes the link/code — and auto-joins the shared sheet. A **Live · N** badge shows the connection state.
+- Every score edit on either device syncs to the other instantly. State is a full-game snapshot with a `updatedAt`-based last-write-wins version (see `src/lib/multiplayer/sync.ts`), so late joiners get the current sheet and there are no feedback loops.
+
+### How it works
+
+Peers connect directly over **WebRTC** (full-mesh `P2PRoom` in `src/lib/multiplayer/p2p.ts`). Game data never touches the server — it flows browser-to-browser. The only server piece is a tiny **signaling relay** at `/api/rtc` that brokers the WebRTC handshake (offer/answer/ICE) and a room roster, backed by the shared SQL accessor (`src/lib/db.ts`) and the `rtc_peers` / `rtc_signals` tables (migration `migrations/0002_rtc.sql`). Rows are tiny and self-expiring; no background job is needed.
+
+### Production caveat — set `DATABASE_URL`
+
+Cross-device signaling in production **requires a real `DATABASE_URL` (Neon)**. The signaling relay stores handshake rows in the database, and the local PGLite fallback is **per-serverless-instance / in-memory** — two phones can land on different instances and never see each other's signals. Local dev is a single instance, so two tabs or browser contexts sync fine against PGLite. Set `DATABASE_URL` on the deploy (the same variable the rest of the app already uses) and the relay works across instances with no code changes.
+
+Only STUN is configured (`defaultIceServers()`), which is enough for loopback and most networks. Devices behind **strict/symmetric NATs** may need a **TURN** relay to connect; add one via `VITE_STUN_URLS`-style ICE config if you hit that (no TURN server is bundled).
+
+You can prove the whole path locally with two browser contexts:
+
+```bash
+npm run dev
+node scripts/e2e-live-sync.mjs   # requires playwright + chromium
+```
+
 ## Scoring
 
 Authoritative values live in `src/lib/scoring.ts`. Going out is **100 / 200 / 300 / 400** by hand — not a flat 100.
