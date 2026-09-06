@@ -17,6 +17,12 @@ type GameState = {
   newGame: (teamNames?: [string, string]) => string;
   setActive: (id: string | null) => void;
   deleteGame: (id: string) => void;
+  /**
+   * Replace (or insert) a game from a peer in a live session, keeping the
+   * remote's `updatedAt` so LWW versioning stays stable, and make it active.
+   * Never call this from UI — it's the P2P sync path (see multiplayer/session).
+   */
+  applyRemoteGame: (game: Game) => void;
   renameTeam: (team: TeamIndex, name: string) => void;
   setCurrentHand: (hand: HandIndex) => void;
   updateScore: (
@@ -54,6 +60,15 @@ export const useGameStore = create<GameState>()(
           const activeGameId =
             s.activeGameId === id ? (games[0]?.id ?? null) : s.activeGameId;
           return { games, activeGameId };
+        });
+      },
+      applyRemoteGame: (game) => {
+        set((s) => {
+          const exists = s.games.some((g) => g.id === game.id);
+          const games = exists
+            ? s.games.map((g) => (g.id === game.id ? game : g))
+            : [game, ...s.games];
+          return { games, activeGameId: game.id };
         });
       },
       renameTeam: (team, name) => {
