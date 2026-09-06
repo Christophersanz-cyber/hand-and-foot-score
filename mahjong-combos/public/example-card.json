@@ -1,0 +1,38 @@
+{
+  "year": 2026,
+  "title": "Example import (generic shapes, not an NMJL card)",
+  "notes": "Paste a card you transcribed from a year you own. This file is only a schema sample.",
+  "hands": [
+    {
+      "id": "wd-winds-pair",
+      "name": "Four Winds & Dragon Pair",
+      "section": "winds-dragons",
+      "concealed": false,
+      "suitVarCount": 0,
+      "usesNumberVar": false,
+      "description": "Pung of each wind plus a pair of Red Dragons.",
+      "blocks": [
+        { "count": 3, "spec": { "kind": "wind", "wind": "north" } },
+        { "count": 3, "spec": { "kind": "wind", "wind": "east" } },
+        { "count": 3, "spec": { "kind": "wind", "wind": "west" } },
+        { "count": 3, "spec": { "kind": "wind", "wind": "south" } },
+        { "count": 2, "spec": { "kind": "dragon", "dragon": "red" } }
+      ]
+    },
+    {
+      "id": "ln-kongs",
+      "name": "Like Numbers — Three Kongs & Pair",
+      "section": "like-numbers",
+      "concealed": false,
+      "suitVarCount": 3,
+      "usesNumberVar": true,
+      "description": "Kong of N in each suit plus a pair of Flowers.",
+      "blocks": [
+        { "count": 4, "spec": { "kind": "num", "suit": "S1", "offset": 0 } },
+        { "count": 4, "spec": { "kind": "num", "suit": "S2", "offset": 0 } },
+        { "count": 4, "spec": { "kind": "num", "suit": "S3", "offset": 0 } },
+        { "count": 2, "spec": { "kind": "flower" } }
+      ]
+    }
+  ]
+}
