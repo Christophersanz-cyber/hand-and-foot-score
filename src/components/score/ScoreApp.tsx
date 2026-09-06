@@ -180,14 +180,6 @@ function Board() {
   const [rename, setRename] = useState<TeamIndex | null>(null);
   const [invite, setInvite] = useState(false);
 
-  const gameId = game?.id ?? null;
-  // A live session belongs to one game; stop it if the active game changes away.
-  useEffect(() => {
-    return () => {
-      if (gameId && liveSession.isActive(gameId)) liveSession.stop();
-    };
-  }, [gameId]);
-
   if (!game) return null;
 
   const active = game;

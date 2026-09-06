@@ -50,6 +50,9 @@ class LiveSession {
   private suppressBroadcast = false;
   private lastGameRef: Game | null = null;
   private connectedPeers = new Set<string>();
+  /** True once this room has been the active game — a joiner sets it on adopt. */
+  private attached = false;
+  private onPageHide: (() => void) | null = null;
 
   isActive(roomId: string): boolean {
     return this.room !== null && this.roomId === roomId;
@@ -65,6 +68,7 @@ class LiveSession {
     this.lastVersion = local
       ? { ts: local.updatedAt, cid: this.clientId }
       : { ts: 0, cid: "" };
+    this.attached = useGameStore.getState().activeGameId === roomId;
 
     useLiveStore.setState({
       status: "connecting",
@@ -83,22 +87,46 @@ class LiveSession {
     this.room = room;
     void room.join();
 
-    // Broadcast local score edits to peers. touch() makes a fresh game object
-    // on every change, so reference inequality detects a real edit.
+    // Owns both the broadcast of local edits AND the lifecycle: the session
+    // ends when the user navigates to a different game. Living on the store
+    // (not a React effect) keeps it immune to React's dev double-invoke, which
+    // would otherwise fire an effect cleanup and tear the room down for good.
     this.unsubStore = useGameStore.subscribe((state) => {
-      const game = state.games.find((g) => g.id === roomId) ?? null;
+      if (!this.roomId) return;
+      const active = state.activeGameId;
+      if (active === this.roomId) {
+        this.attached = true;
+      } else if (this.attached) {
+        // Switched to another game — end this session (deferred so we don't
+        // unsubscribe ourselves mid-notification).
+        queueMicrotask(() => this.stop());
+        return;
+      }
+      // touch() makes a fresh game object on every edit, so reference
+      // inequality detects a real change to broadcast.
+      const game = state.games.find((g) => g.id === this.roomId) ?? null;
       if (game === this.lastGameRef) return;
       this.lastGameRef = game;
       if (game) this.onLocalChange(game);
     });
+
+    if (typeof window !== "undefined") {
+      this.onPageHide = () => this.stop();
+      window.addEventListener("pagehide", this.onPageHide);
+    }
   }
 
   stop(): void {
     this.unsubStore?.();
     this.unsubStore = null;
+    if (this.onPageHide && typeof window !== "undefined") {
+      window.removeEventListener("pagehide", this.onPageHide);
+    }
+    this.onPageHide = null;
     this.room?.close();
     this.room = null;
     this.roomId = null;
+    this.attached = false;
     this.connectedPeers.clear();
     this.lastGameRef = null;
     this.lastVersion = { ts: 0, cid: "" };
