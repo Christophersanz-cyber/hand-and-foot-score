@@ -20,13 +20,7 @@ export default async function rtcMiddleware(
   next: () => unknown | Promise<unknown>,
 ): Promise<unknown> {
   if (event.url.pathname !== "/api/rtc") return next();
-
-  const method = (event.req.method ?? "GET").toUpperCase();
-  const body = method === "POST" ? await event.req.text() : null;
-  const request = new Request(event.url.toString(), {
-    method,
-    headers: { "content-type": "application/json" },
-    ...(body != null ? { body } : {}),
-  });
-  return handleRtcRequest(request);
+  // event.req is the web-standard Request (h3 v2 / Nitro v3); the handler reads
+  // its URL + body itself, so pass it straight through.
+  return handleRtcRequest(event.req);
 }
