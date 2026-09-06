@@ -4,6 +4,7 @@ import { CardManager } from "./components/CardManager";
 import { DiscardRack } from "./components/DiscardRack";
 import { HandBar } from "./components/HandBar";
 import { SuggestionList } from "./components/SuggestionList";
+import { Tile } from "./components/Tile";
 import { TilePicker } from "./components/TilePicker";
 import { YearSelect } from "./components/YearSelect";
 import { BUNDLED_CARDS, defaultCard, findCard, mergeCards } from "./data/cards";
@@ -116,11 +117,28 @@ export default function App() {
               Using demo shapes for {active.year} — not the official NMJL card. Import the card you own.
             </p>
           )}
+          {session.tiles.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:hidden">
+              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                {session.tiles.length}/14
+              </span>
+              {session.tiles.map((tile, i) => (
+                <Tile
+                  key={`${tile.code}-${i}`}
+                  code={tile.code}
+                  size="sm"
+                  exposed={tile.exposed}
+                  onClick={() => setSession((s) => ({ ...s, tiles: removeRackTile(s.tiles, i) }))}
+                  title="Remove tile"
+                />
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
       <main className="mx-auto grid max-w-5xl gap-6 px-4 py-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] lg:grid-cols-2">
-        <section className="space-y-4">
+        <section className="order-2 space-y-4 lg:order-1">
           <HandBar
             tiles={session.tiles}
             onRemove={(i) => setSession((s) => ({ ...s, tiles: removeRackTile(s.tiles, i) }))}
@@ -175,7 +193,7 @@ export default function App() {
           />
         </section>
 
-        <section>
+        <section className="order-1 lg:order-2">
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
             <h2 className="text-sm font-semibold text-slate-700">
               Suggested combinations
