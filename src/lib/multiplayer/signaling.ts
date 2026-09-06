@@ -158,3 +158,29 @@ export async function handleRtc(sql: Sql, req: RtcRequest): Promise<RtcResponse>
   if (method === "POST") return handlePost(sql, req.body);
   return json(405, { error: "method not allowed" });
 }
+
+/**
+ * Resolve the `Sql` accessor, then route the request — but treat a database
+ * that cannot initialize (no `DATABASE_URL` and PGLite's WASM unavailable in a
+ * deploy bundle, or any bootstrap error) as a *contained* degradation rather
+ * than a server crash: return HTTP 503 `{ error: "signaling unavailable" }`.
+ * The rest of the app (single-player scoresheet, SSR, static assets, PWA) is
+ * DB-free and keeps serving; only multiplayer signaling goes dark, and the
+ * P2PRoom client's poll simply treats the 503 like any failed poll and retries.
+ *
+ * Kept here (framework-free) so both the dev Vite middleware and the deployed
+ * Nitro middleware share it, and so it's unit-testable with an injected `Sql`.
+ */
+export async function handleRtcWithSql(
+  getSql: () => Promise<Sql>,
+  req: RtcRequest,
+): Promise<RtcResponse> {
+  let sql: Sql;
+  try {
+    sql = await getSql();
+  } catch (err) {
+    console.error("[rtc] signaling unavailable — database not ready:", err);
+    return json(503, { error: "signaling unavailable" });
+  }
+  return handleRtc(sql, req);
+}
