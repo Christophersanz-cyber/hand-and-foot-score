@@ -17,6 +17,13 @@ import { handOver, parseWriteAtomicArgs, stagingError } from "./write-atomic.mjs
 const TEMPLATE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = join(TEMPLATE_ROOT, "scripts/write-atomic.mjs");
 
+// The .grok/ app-builder authoring scaffold is platform tooling that is not
+// shipped in the standalone export, so this doc-pinning check only applies
+// inside the full builder workspace. Skip — rather than fail — when absent.
+const skipWithoutOgSkill = existsSync(join(TEMPLATE_ROOT, ".grok/skills/og/SKILL.md"))
+  ? false
+  : "requires the .grok/skills/og authoring scaffold (absent in the standalone repo)";
+
 function makeWorkspace() {
   const root = mkdtempSync(join(tmpdir(), "write-atomic-"));
   mkdirSync(join(root, "public"), { recursive: true });
@@ -164,7 +171,7 @@ test("cli: relative paths follow the script's root, not the caller's cwd", () =>
   assert.equal(existsSync(join(root, "public/og.jpg")), false);
 });
 
-test("every hand-over the og skill prints is one this script accepts", () => {
+test("every hand-over the og skill prints is one this script accepts", { skip: skipWithoutOgSkill }, () => {
   // The card and banner recipes live in the skill's references/, not SKILL.md.
   const skillDir = join(TEMPLATE_ROOT, ".grok/skills/og");
   const docs = [

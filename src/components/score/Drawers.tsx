@@ -47,7 +47,10 @@ export function RulesDrawer({
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle>Score sheet key</DrawerTitle>
-          <DrawerDescription>5-deck Hand & Foot — matches the paper sheet.</DrawerDescription>
+          <DrawerDescription>
+            5-deck Hand & Foot — matches the paper sheet. Going out is the last act of
+            a hand; only one team can submit it.
+          </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="space-y-6">
           <section>

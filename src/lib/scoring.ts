@@ -241,6 +241,13 @@ export function meetsGoOut(score: TeamHandScore, hand: HandDef): boolean {
   return score.cleanBooks >= hand.cleanNeed && score.dirtyBooks >= hand.dirtyNeed;
 }
 
+/** Team that submitted going out for this hand — the last act. Null if nobody has. */
+export function goOutTeam(game: Game, hand: HandIndex = game.currentHand): TeamIndex | null {
+  if (game.scores[hand][0].goingOut) return 0;
+  if (game.scores[hand][1].goingOut) return 1;
+  return null;
+}
+
 export function winnerOf(game: Game): TeamIndex | null {
   const a = runningTotal(game, 0);
   const b = runningTotal(game, 1);

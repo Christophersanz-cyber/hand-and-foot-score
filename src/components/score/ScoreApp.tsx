@@ -18,10 +18,12 @@ import {
   HANDS,
   formatPts,
   gameSummary,
+  goOutTeam,
   isHandPlayed,
   playedHandCount,
   runningTotal,
   winnerOf,
+  type HandIndex,
   type TeamIndex,
 } from "@/lib/scoring";
 import { useActiveGame, useGameStore } from "@/lib/store";
@@ -129,6 +131,7 @@ function Board() {
   const win = winnerOf(active);
   const fourthPlayed = isHandPlayed(active, 3);
   const played = playedHandCount(active);
+  const outTeam = goOutTeam(active, active.currentHand);
 
   async function share() {
     const text = gameSummary(active);
@@ -272,6 +275,26 @@ function Board() {
       </header>
 
       <main className="flex-1 px-4 pb-24">
+        {outTeam !== null && view === "play" ? (
+          <div className="mb-4 rounded-lg bg-felt-elev px-4 py-3 text-felt-fg">
+            <p className="text-xs font-medium tracking-wide text-felt-muted uppercase">
+              Last act · {hand.short} hand
+            </p>
+            <p className="font-display text-xl font-semibold">
+              {game.teamNames[outTeam]} went out (+{formatPts(hand.goingOut)})
+            </p>
+            {hand.index < 3 ? (
+              <button
+                type="button"
+                onClick={() => setCurrentHand((hand.index + 1) as HandIndex)}
+                className="mt-2 inline-flex h-11 items-center text-sm font-medium text-felt-fg underline-offset-4 hover:underline"
+              >
+                Score the next hand
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
         {fourthPlayed ? (
           <div className="mb-4 rounded-lg bg-paper px-4 py-3 text-paper-fg shadow-paper">
             <p className="text-xs font-medium tracking-wide text-paper-muted uppercase">
