@@ -11,6 +11,7 @@ import {
   formatPts,
   handTotal,
   meetsGoOut,
+  negativeLine,
   runningTotal,
   subtotal,
   type BookKey,
@@ -82,7 +83,7 @@ export function PlayPanel({ game, team, onChange, onReset }: Props) {
       <NumberRow
         label="Negative Pts"
         hint="Leftover cards, red 3s"
-        value={score.negativePts}
+        value={negativeLine(score.negativePts)}
         onOpen={() => setEntry("negativePts")}
       />
       <NumberRow
@@ -162,7 +163,7 @@ export function PlayPanel({ game, team, onChange, onReset }: Props) {
         initial={entry === "negativePts" ? score.negativePts : score.cardCount}
         teamName={game.teamNames[team]}
         onApply={(value) => {
-          if (entry === "negativePts") onChange({ negativePts: value });
+          if (entry === "negativePts") onChange({ negativePts: negativeLine(value) });
           else onChange({ cardCount: value });
         }}
       />

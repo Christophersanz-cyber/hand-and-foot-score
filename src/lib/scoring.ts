@@ -167,6 +167,12 @@ export function createGame(
   };
 }
 
+/** Leftover / red-3 points always deduct. 50 and −50 both score as −50. */
+export function negativeLine(pts: number): number {
+  if (!Number.isFinite(pts) || pts === 0) return 0;
+  return -Math.abs(pts);
+}
+
 export function linePoints(score: TeamHandScore, hand: HandDef) {
   return {
     perfectDraw: score.perfectDraw ? POINTS.perfectDraw : 0,
@@ -175,7 +181,7 @@ export function linePoints(score: TeamHandScore, hand: HandDef) {
     dirtyBooks: score.dirtyBooks * POINTS.dirtyBook,
     bookOf7s: score.bookOf7s * POINTS.bookOf7s,
     bookOfBlack3s: score.bookOfBlack3s * POINTS.bookOfBlack3s,
-    negativePts: score.negativePts,
+    negativePts: negativeLine(score.negativePts),
     cardCount: score.cardCount,
   };
 }

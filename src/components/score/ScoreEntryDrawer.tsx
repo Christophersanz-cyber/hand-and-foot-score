@@ -10,7 +10,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { CARD_VALUES, formatPts, type CardValueId } from "@/lib/scoring";
+import { CARD_VALUES, formatPts, negativeLine, type CardValueId } from "@/lib/scoring";
 import { cn } from "@/lib/utils";
 
 type Mode = "number" | "cards";
@@ -82,13 +82,14 @@ export function ScoreEntryDrawer({
   }
 
   function applyNumber() {
-    onApply(parsedBuffer());
+    const parsed = parsedBuffer();
+    onApply(field === "negativePts" ? negativeLine(parsed) : parsed);
     onOpenChange(false);
   }
 
   function applyTally(asNegative: boolean) {
-    const value = asNegative ? -Math.abs(tallyTotal) : tallyTotal;
-    onApply(value);
+    const signed = asNegative ? -Math.abs(tallyTotal) : tallyTotal;
+    onApply(field === "negativePts" ? negativeLine(signed) : signed);
     onOpenChange(false);
   }
 
